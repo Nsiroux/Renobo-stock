@@ -31,7 +31,7 @@ type ReservationRow = {
   status: 'reserved' | 'partial' | 'delivered' | 'cancelled'
   requested_date: string | null
   product_variants: {
-    display_name: string
+    display_name: string | null
   } | null
 }
 
@@ -198,7 +198,7 @@ export default async function Home() {
   }
 
   const stockRows = (stockData ?? []) as StockRow[]
-  const reservationRows = (reservationsData ?? []) as ReservationRow[]
+  const reservationRows = (reservationsData ?? []) as any as ReservationRow[]
   const variantOptions = (variantsData ?? []) as ProductVariantOption[]
   const inventoryRows = (inventoryData ?? []) as InventoryRow[]
   const locationOptions = (locationsData ?? []) as LocationOption[]
