@@ -198,7 +198,7 @@ export default async function Home() {
   }
 
   const stockRows = (stockData ?? []) as StockRow[]
-  const reservationRows = (reservationsData ?? []) as any as ReservationRow[]
+  const reservationRows = (reservationsData ?? []) as ReservationRow[]
   const variantOptions = (variantsData ?? []) as ProductVariantOption[]
   const inventoryRows = (inventoryData ?? []) as InventoryRow[]
   const locationOptions = (locationsData ?? []) as LocationOption[]
