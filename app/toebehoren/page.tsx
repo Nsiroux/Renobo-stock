@@ -39,7 +39,7 @@ type LocationOption = {
   name: string
 }
 
-export default async function PanelenPage() {
+export default async function ToebehorenPage() {
   const supabase = await createClient()
   const {
     data: { session },
@@ -85,7 +85,7 @@ export default async function PanelenPage() {
         <div className="mx-auto max-w-6xl rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
           <h1 className="text-3xl font-semibold text-neutral-900">Renobo voorraad</h1>
           <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-            Fout bij laden van panelen: {message}
+            Fout bij laden van toebehoren: {message}
           </p>
         </div>
       </main>
@@ -93,12 +93,12 @@ export default async function PanelenPage() {
   }
 
   const variants = ((variantsData ?? []) as ProductVariantRow[]).filter(
-    (variant) => variant.products?.product_categories?.name === 'Panelen'
+    (variant) => variant.products?.product_categories?.name === 'Toebehoren'
   )
   const inventoryRows = ((stockData ?? []) as StockSummaryRow[]).filter(
     (row) =>
       row.quantity > 0 &&
-      row.product_variants?.products?.product_categories?.name === 'Panelen'
+      row.product_variants?.products?.product_categories?.name === 'Toebehoren'
   )
   const locations = (locationsData ?? []) as LocationOption[]
   const canAddStock = profileData?.role === 'admin' || profileData?.role === 'planner'
@@ -136,7 +136,7 @@ export default async function PanelenPage() {
       acc.set(row.product_variant_id, {
         id: row.product_variant_id,
         display_name: variant.display_name,
-        product_name: variant.products?.name ?? 'Paneel',
+        product_name: variant.products?.name ?? 'Toebehoren',
         totalStock: row.quantity,
       })
 
@@ -150,10 +150,10 @@ export default async function PanelenPage() {
         <div className="rounded-3xl bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <RenoboBrand href="/panelen" />
+              <RenoboBrand href="/toebehoren" />
               <h1 className="mt-4 text-3xl font-semibold text-neutral-900">Renobo voorraad</h1>
               <p className="mt-2 text-neutral-600">
-                Overzicht van paneelvarianten. Tik op een kaart voor het detailoverzicht.
+                Overzicht van toebehoren. Tik op een kaart voor het detailoverzicht.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
@@ -162,15 +162,15 @@ export default async function PanelenPage() {
                 >
                   Pads
                 </Link>
-                <span className="rounded-2xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white">
-                  Panelen
-                </span>
                 <Link
-                  href="/toebehoren"
+                  href="/panelen"
                   className="rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition hover:border-[var(--brand)]/40 hover:bg-white"
                 >
-                  Toebehoren
+                  Panelen
                 </Link>
+                <span className="rounded-2xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white">
+                  Toebehoren
+                </span>
               </div>
             </div>
 
@@ -183,41 +183,39 @@ export default async function PanelenPage() {
         )}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visibleVariants.map((variant) => {
-            return (
-              <Link
-                key={variant.id}
-                href={`/panelen/${variant.id}`}
-                className="group block rounded-3xl focus-visible:outline-none"
-              >
-                <article className="rounded-3xl bg-white p-5 shadow-sm transition duration-150 group-hover:-translate-y-0.5 group-hover:shadow-md group-active:scale-[0.99] group-focus-visible:ring-2 group-focus-visible:ring-[var(--brand)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm text-neutral-500">{variant.product_name}</p>
-                      <h2 className="mt-2 text-xl font-semibold text-neutral-900">
-                        {variant.display_name ?? 'Onbekende variant'}
-                      </h2>
-                    </div>
-
-                    <span className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition group-hover:border-neutral-300">
-                      Open
-                    </span>
+          {visibleVariants.map((variant) => (
+            <Link
+              key={variant.id}
+              href={`/toebehoren/${variant.id}`}
+              className="group block rounded-3xl focus-visible:outline-none"
+            >
+              <article className="rounded-3xl bg-white p-5 shadow-sm transition duration-150 group-hover:-translate-y-0.5 group-hover:shadow-md group-active:scale-[0.99] group-focus-visible:ring-2 group-focus-visible:ring-[var(--brand)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-neutral-500">{variant.product_name}</p>
+                    <h2 className="mt-2 text-xl font-semibold text-neutral-900">
+                      {variant.display_name ?? 'Onbekende variant'}
+                    </h2>
                   </div>
 
-                  <div className="mt-5 rounded-2xl bg-neutral-50 p-4">
-                    <p className="text-sm text-neutral-500">Totale stock</p>
-                    <p className="mt-2 text-3xl font-semibold text-neutral-900">
-                      {variant.totalStock}
-                    </p>
-                  </div>
-                </article>
-              </Link>
-            )
-          })}
+                  <span className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition group-hover:border-neutral-300">
+                    Open
+                  </span>
+                </div>
+
+                <div className="mt-5 rounded-2xl bg-neutral-50 p-4">
+                  <p className="text-sm text-neutral-500">Totale stock</p>
+                  <p className="mt-2 text-3xl font-semibold text-neutral-900">
+                    {variant.totalStock}
+                  </p>
+                </div>
+              </article>
+            </Link>
+          ))}
 
           {visibleVariants.length === 0 && (
             <div className="rounded-3xl bg-white px-5 py-10 text-center text-neutral-500 shadow-sm sm:col-span-2 xl:col-span-3">
-              Geen paneelvarianten gevonden.
+              Geen toebehoren gevonden.
             </div>
           )}
         </div>
