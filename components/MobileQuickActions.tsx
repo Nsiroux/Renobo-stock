@@ -67,7 +67,7 @@ export default function MobileQuickActions({
               onClick={() => setActiveTab(tab.key)}
               className={`rounded-2xl px-4 py-4 text-sm font-medium ${
                 activeTab === tab.key
-                  ? 'bg-black text-white'
+                  ? 'bg-[var(--brand)] text-white'
                   : 'border border-neutral-300 bg-white text-neutral-700'
               }`}
             >

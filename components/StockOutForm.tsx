@@ -170,7 +170,7 @@ export default function StockOutForm({ variants, locations }: Props) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-2xl bg-black px-4 py-3 font-medium text-white disabled:opacity-50"
+          className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 font-medium text-white disabled:opacity-50"
         >
           {isPending ? 'Bezig...' : 'Afboeken'}
         </button>

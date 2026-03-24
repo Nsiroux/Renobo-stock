@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import RenoboBrand from "@/components/RenoboBrand";
 import { hasSupabaseEnv, supabase } from "@/lib/supabase";
 
 export default function ResetPasswordPage() {
@@ -93,7 +94,8 @@ export default function ResetPasswordPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-8">
       <div className="w-full max-w-md rounded-3xl border border-line bg-surface p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-foreground">Nieuw wachtwoord instellen</h1>
+        <RenoboBrand compact />
+        <h1 className="mt-5 text-2xl font-semibold text-foreground">Nieuw wachtwoord instellen</h1>
         <p className="mt-2 text-sm text-muted">
           Kies een nieuw wachtwoord nadat je de resetlink uit de e-mail hebt geopend.
         </p>
@@ -161,7 +163,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-2xl bg-black px-4 py-3 font-medium text-white disabled:opacity-50"
+              className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 font-medium text-white disabled:opacity-50"
             >
               {loading ? "Bezig..." : "Wachtwoord opslaan"}
             </button>

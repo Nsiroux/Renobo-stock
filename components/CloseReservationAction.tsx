@@ -71,7 +71,7 @@ export default function CloseReservationAction({ reservationId }: Props) {
                 type="button"
                 disabled={isPending}
                 onClick={() => void handleClose(option.value)}
-                className="w-full rounded-xl bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="w-full rounded-xl bg-[var(--brand)] px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {option.label}
               </button>

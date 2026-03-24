@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ReservationForm from '@/components/ReservationForm'
@@ -8,6 +9,7 @@ import LogoutButton from '@/components/LogoutButton'
 import MobileQuickActions from '@/components/MobileQuickActions'
 import AdminStockSetForm from '@/components/AdminStockSetForm'
 import CloseReservationAction from '@/components/CloseReservationAction'
+import RenoboBrand from '@/components/RenoboBrand'
 import { isAdminUser } from '@/lib/admin'
 
 type StockRow = {
@@ -125,7 +127,7 @@ export default async function Home() {
       )
       .in('status', ['reserved', 'partial'])
       .order('created_at', { ascending: false }),
-    supabase.from('product_variants').select('id, display_name').eq('active', true).order('display_name'),
+    supabase.from('product_variants').select('id, display_name').eq('is_active', true).order('display_name'),
     supabase.from('locations').select('id, name').order('name'),
     supabase
       .from('inventory')
@@ -200,6 +202,7 @@ export default async function Home() {
   const stockRows = (stockData ?? []) as StockRow[]
   const reservationRows = (reservationsData ?? []) as ReservationRow[]
   const variantOptions = (variantsData ?? []) as ProductVariantOption[]
+  const activeVariantIds = new Set(variantOptions.map((variant) => variant.id))
   const inventoryRows = (inventoryData ?? []) as InventoryRow[]
   const locationOptions = (locationsData ?? []) as LocationOption[]
   const inventoryByVariant = inventoryRows.reduce<Record<string, Record<string, number>>>(
@@ -227,7 +230,7 @@ export default async function Home() {
     {}
   )
   const padStockRows = padVariantNames
-    .map((name) => stockRows.find((row) => row.display_name === name))
+    .map((name) => stockRows.find((row) => row.display_name === name && activeVariantIds.has(row.product_variant_id)))
     .filter((row): row is StockRow => Boolean(row))
   const padVariantIds = new Set(padStockRows.map((row) => row.product_variant_id))
   const padReservationRows = reservationRows.filter((row) => {
@@ -248,10 +251,22 @@ export default async function Home() {
         <div className="rounded-3xl bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-semibold text-neutral-900">Renobo voorraad</h1>
+              <RenoboBrand href="/" />
+              <h1 className="mt-4 text-3xl font-semibold text-neutral-900">Renobo voorraad</h1>
               <p className="mt-2 text-neutral-600">
                 Overzicht van fysieke stock, reservaties en beschikbare voorraad.
               </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="rounded-2xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white">
+                  Pads
+                </span>
+                <Link
+                  href="/panelen"
+                  className="rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition hover:border-[var(--brand)]/40 hover:bg-white"
+                >
+                  Panelen
+                </Link>
+              </div>
             </div>
 
             <LogoutButton />
@@ -281,7 +296,7 @@ export default async function Home() {
 
         <section className="space-y-4">
           <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
-            <h2 className="text-xl font-semibold text-neutral-900">Pad voorraad</h2>
+            <h2 className="text-xl font-semibold text-neutral-900">Pads</h2>
             <p className="mt-1 text-sm text-neutral-600">
               Dagelijks overzicht van actieve padvarianten per locatie.
             </p>

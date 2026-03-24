@@ -155,7 +155,7 @@ export default function AdminStockSetForm({ variants, locations }: Props) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-2xl bg-black px-4 py-3 font-medium text-white disabled:opacity-50"
+          className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 font-medium text-white disabled:opacity-50"
         >
           {isPending ? 'Bezig...' : 'Stock juist zetten'}
         </button>
