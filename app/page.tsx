@@ -239,12 +239,6 @@ export default async function Home() {
     return Boolean(displayName && padVariantNames.includes(displayName as (typeof padVariantNames)[number]))
   })
   const padVariantOptions = variantOptions.filter((variant) => padVariantIds.has(variant.id))
-  const totals = {
-    physical: padStockRows.reduce((sum, row) => sum + row.physical_stock, 0),
-    reserved: padStockRows.reduce((sum, row) => sum + row.reserved_stock, 0),
-    available: padStockRows.reduce((sum, row) => sum + row.available_stock, 0),
-  }
-
   return (
     <main className="min-h-screen bg-neutral-50 p-6">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -276,27 +270,6 @@ export default async function Home() {
             </div>
 
             <LogoutButton />
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-3xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-neutral-500">Totale fysieke stock</p>
-            <p className="mt-2 text-3xl font-semibold">
-              {totals.physical}
-            </p>
-          </div>
-          <div className="rounded-3xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-neutral-500">Totale gereserveerde stock</p>
-            <p className="mt-2 text-3xl font-semibold">
-              {totals.reserved}
-            </p>
-          </div>
-          <div className="rounded-3xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-neutral-500">Totale beschikbare stock</p>
-            <p className="mt-2 text-3xl font-semibold">
-              {totals.available}
-            </p>
           </div>
         </div>
 
