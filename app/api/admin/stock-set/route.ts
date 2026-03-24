@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { product_variant_id, location_id, quantity, note } = body
+    const { product_variant_id, location_id, quantity } = body
 
     if (!product_variant_id || !location_id || quantity === undefined || quantity === null) {
       return NextResponse.json(

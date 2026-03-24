@@ -12,6 +12,7 @@ export default function AuthGate({ children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const [checked, setChecked] = useState(false);
+  const isPublicRoute = pathname === "/login" || pathname === "/reset-password";
 
   useEffect(() => {
     let isMounted = true;
@@ -34,7 +35,7 @@ export default function AuthGate({ children }: Props) {
         return;
       }
 
-      if (!session && pathname !== "/login") {
+      if (!session && !isPublicRoute) {
         router.replace("/login");
       } else if (session && pathname === "/login") {
         router.replace("/");
@@ -53,7 +54,7 @@ export default function AuthGate({ children }: Props) {
             return;
           }
 
-          if (!session && pathname !== "/login") {
+          if (!session && !isPublicRoute) {
             setChecked(false);
             router.replace("/login");
           } else if (session && pathname === "/login") {
@@ -68,9 +69,9 @@ export default function AuthGate({ children }: Props) {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [pathname, router]);
+  }, [isPublicRoute, pathname, router]);
 
-  if (!checked && pathname !== "/login") {
+  if (!checked && !isPublicRoute) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <div className="rounded-2xl border border-line bg-surface px-5 py-4 text-sm text-muted">
