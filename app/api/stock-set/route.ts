@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { isAdminUser } from '@/lib/admin'
 
 export async function POST(request: Request) {
   try {
@@ -15,12 +14,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Niet ingelogd.' }, { status: 401 })
     }
 
-    if (!isAdminUser(user)) {
-      return NextResponse.json({ error: 'Geen admin-toegang.' }, { status: 403 })
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      return NextResponse.json({ error: profileError.message }, { status: 400 })
+    }
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: alleen admin kan stock juist zetten.' },
+        { status: 403 }
+      )
     }
 
     const body = await request.json()
-    const { product_variant_id, location_id, quantity, note } = body
+    const { product_variant_id, location_id, quantity } = body
 
     if (!product_variant_id || !location_id || quantity === undefined || quantity === null) {
       return NextResponse.json(
@@ -44,7 +56,6 @@ export async function POST(request: Request) {
       product_variant_id,
       location_id,
       quantity,
-      note,
     }
 
     const result = existingRow

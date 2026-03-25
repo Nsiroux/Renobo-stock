@@ -17,6 +17,23 @@ export async function POST(request: Request) {
       )
     }
 
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      return NextResponse.json({ error: profileError.message }, { status: 400 })
+    }
+
+    if (!['admin', 'planner', 'operator'].includes(profile?.role ?? '')) {
+      return NextResponse.json(
+        { error: 'Forbidden: je mag geen stock transfer registreren.' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
 
     const {

@@ -116,10 +116,10 @@ export default async function ToebehorenDetailPage({ params }: PageProps) {
     },
   ]
   const role = profileData?.role
-  const canAddStock = role === 'admin' || role === 'planner'
+  const canAddStock = role === 'admin'
   const canConsume = role === 'admin' || role === 'planner' || role === 'operator'
-  const canTransfer = role === 'admin' || role === 'planner'
-  const canSetStock = role === 'admin' || role === 'planner'
+  const canTransfer = role === 'admin' || role === 'planner' || role === 'operator'
+  const canSetStock = role === 'admin'
   const stockPerLocation = locations.map((location) => {
     const total = inventoryRows
       .filter((row) => row.locations?.id === location.id)

@@ -86,7 +86,7 @@ export default function StockAddForm({ variants, locations }: Props) {
         <div className="rounded-3xl bg-white p-5 shadow-sm">
           <h2 className="text-xl font-semibold text-neutral-900">Stock toevoegen</h2>
           <p className="mt-2 text-sm text-neutral-600">
-            Alleen voor admin en planner: voeg stock toe voor een actieve paneelvariant.
+            Alleen voor admin: voeg stock toe voor een actieve productvariant.
           </p>
 
           <form

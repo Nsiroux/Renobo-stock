@@ -101,7 +101,7 @@ export default async function PanelenPage() {
       row.product_variants?.products?.product_categories?.name === 'Panelen'
   )
   const locations = (locationsData ?? []) as LocationOption[]
-  const canAddStock = profileData?.role === 'admin' || profileData?.role === 'planner'
+  const canAddStock = profileData?.role === 'admin'
   const variantOptions = variants
     .filter((variant) => Boolean(variant.display_name))
     .map((variant) => ({

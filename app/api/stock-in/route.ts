@@ -24,8 +24,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 400 })
     }
 
-    if (profile?.role !== 'admin' && profile?.role !== 'planner') {
-      return NextResponse.json({ error: 'Geen toegang.' }, { status: 403 })
+    if (profile?.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: alleen admin kan stock toevoegen.' },
+        { status: 403 }
+      )
     }
 
     const body = await request.json()

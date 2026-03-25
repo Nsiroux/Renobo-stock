@@ -10,7 +10,6 @@ import MobileQuickActions from '@/components/MobileQuickActions'
 import AdminStockSetForm from '@/components/AdminStockSetForm'
 import CloseReservationAction from '@/components/CloseReservationAction'
 import RenoboBrand from '@/components/RenoboBrand'
-import { isAdminUser } from '@/lib/admin'
 
 type StockRow = {
   product_variant_id: string
@@ -110,14 +109,13 @@ export default async function Home() {
     redirect('/login')
   }
 
-  const isAdmin = isAdminUser(session.user)
-
   const [
     { data: stockData, error: stockError },
     { data: reservationsData, error: reservationsError },
     { data: variantsData, error: variantsError },
     { data: locationsData, error: locationsError },
     { data: inventoryData, error: inventoryError },
+    { data: profileData, error: profileError },
   ] = await Promise.all([
     supabase.from('v_stock_summary').select('*').order('display_name'),
     supabase
@@ -132,6 +130,7 @@ export default async function Home() {
     supabase
       .from('inventory')
       .select('product_variant_id, quantity, locations(name)'),
+    supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle(),
   ])
 
   if (stockError) {
@@ -186,13 +185,13 @@ export default async function Home() {
     )
   }
 
-  if (inventoryError) {
+  if (inventoryError || profileError) {
     return (
       <main className="min-h-screen bg-neutral-50 p-6">
         <div className="mx-auto max-w-6xl rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
           <h1 className="text-3xl font-semibold text-neutral-900">Renobo voorraad</h1>
           <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-            Fout bij laden van voorraad per locatie: {inventoryError.message}
+            Fout bij laden van voorraad per locatie: {inventoryError?.message ?? profileError?.message}
           </p>
         </div>
       </main>
@@ -205,6 +204,7 @@ export default async function Home() {
   const activeVariantIds = new Set(variantOptions.map((variant) => variant.id))
   const inventoryRows = (inventoryData ?? []) as InventoryRow[]
   const locationOptions = (locationsData ?? []) as LocationOption[]
+  const canAdjustStock = profileData?.role === 'admin'
   const inventoryByVariant = inventoryRows.reduce<Record<string, Record<string, number>>>(
     (acc, row) => {
       const locationName = row.locations?.name
@@ -429,7 +429,7 @@ export default async function Home() {
           <TransferForm variants={padVariantOptions} locations={locationOptions} />
         </div>
 
-        {isAdmin && (
+        {canAdjustStock && (
           <div className="xl:max-w-md">
             <AdminStockSetForm variants={padStockRows.map((row) => ({
               id: row.product_variant_id,
