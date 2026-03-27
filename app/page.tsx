@@ -62,6 +62,16 @@ const padVariantNames = [
   'Pad Marble 40mm',
 ] as const
 
+function formatPadDisplayName(displayName: string | null | undefined) {
+  if (!displayName) {
+    return 'Onbekende variant'
+  }
+
+  return displayName.startsWith('Pad ')
+    ? `Phonix Bluefiber Pad ${displayName.slice(4)}`
+    : displayName
+}
+
 function StatusBadge({ status }: { status: StockRow['stock_status'] }) {
   const styles =
     status === 'critical'
@@ -238,7 +248,12 @@ export default async function Home() {
 
     return Boolean(displayName && padVariantNames.includes(displayName as (typeof padVariantNames)[number]))
   })
-  const padVariantOptions = variantOptions.filter((variant) => padVariantIds.has(variant.id))
+  const padVariantOptions = variantOptions
+    .filter((variant) => padVariantIds.has(variant.id))
+    .map((variant) => ({
+      ...variant,
+      display_name: formatPadDisplayName(variant.display_name),
+    }))
   return (
     <main className="min-h-screen bg-neutral-50 p-6">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -302,7 +317,9 @@ export default async function Home() {
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="text-xl font-semibold text-neutral-900">{row.display_name}</h3>
+                        <h3 className="text-xl font-semibold text-neutral-900">
+                          {formatPadDisplayName(row.display_name)}
+                        </h3>
                         <StatusBadge status={row.stock_status} />
                       </div>
                       <p className="mt-2 text-sm text-neutral-500">
@@ -390,7 +407,7 @@ export default async function Home() {
                 {padReservationRows.map((row) => (
                   <tr key={row.id} className="border-t border-neutral-100">
                     <td className="px-5 py-4 font-medium text-neutral-900">
-                      {row.product_variants?.display_name ?? '-'}
+                      {formatPadDisplayName(row.product_variants?.display_name)}
                     </td>
                     <td className="px-5 py-4 font-medium text-neutral-900">{row.customer_name}</td>
                     <td className="px-5 py-4 text-neutral-600">{row.order_reference}</td>
@@ -433,7 +450,7 @@ export default async function Home() {
           <div className="xl:max-w-md">
             <AdminStockSetForm variants={padStockRows.map((row) => ({
               id: row.product_variant_id,
-              display_name: row.display_name,
+              display_name: formatPadDisplayName(row.display_name),
             }))} locations={locationOptions} />
           </div>
         )}
