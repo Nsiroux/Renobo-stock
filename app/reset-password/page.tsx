@@ -2,12 +2,13 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import RenoboBrand from "@/components/RenoboBrand";
 import { hasSupabaseEnv, supabase } from "@/lib/supabase";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const configError =
     !hasSupabaseEnv || !supabase
       ? "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local."
@@ -18,6 +19,7 @@ export default function ResetPasswordPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [checkingRecovery, setCheckingRecovery] = useState(() => !configError);
 
   useEffect(() => {
     if (configError || !supabase) {
@@ -26,17 +28,56 @@ export default function ResetPasswordPage() {
 
     let isMounted = true;
 
-    async function checkSession() {
+    async function initializeRecovery() {
+      const code = searchParams.get("code");
+
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          if (isMounted) {
+            setError(exchangeError.message);
+            setCheckingRecovery(false);
+          }
+          return;
+        }
+      }
+
+      if (typeof window !== "undefined" && window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.slice(1));
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+        const type = hashParams.get("type");
+
+        if (type === "recovery" && accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionError) {
+            if (isMounted) {
+              setError(sessionError.message);
+              setCheckingRecovery(false);
+            }
+            return;
+          }
+
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (isMounted) {
         setReady(Boolean(session));
+        setCheckingRecovery(false);
       }
     }
 
-    void checkSession();
+    void initializeRecovery();
 
     const {
       data: { subscription },
@@ -47,6 +88,7 @@ export default function ResetPasswordPage() {
 
       if (event === "PASSWORD_RECOVERY" || session) {
         setReady(true);
+        setCheckingRecovery(false);
       }
     });
 
@@ -54,7 +96,7 @@ export default function ResetPasswordPage() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [configError]);
+  }, [configError, searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -100,7 +142,13 @@ export default function ResetPasswordPage() {
           Kies een nieuw wachtwoord nadat je de resetlink uit de e-mail hebt geopend.
         </p>
 
-        {!ready ? (
+        {checkingRecovery ? (
+          <div className="mt-6 space-y-4">
+            <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+              Resetlink wordt gecontroleerd...
+            </div>
+          </div>
+        ) : !ready ? (
           <div className="mt-6 space-y-4">
             <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
               Open de resetlink uit je e-mail om hier een nieuw wachtwoord in te stellen.
