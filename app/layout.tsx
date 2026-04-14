@@ -1,21 +1,25 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import AuthGate from "@/components/AuthGate";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Renobo Stock",
-  description: "Internal stock overview powered by Supabase.",
+  title: "Renobo voorraad",
+  description: "Interne stock app voor pads, panelen en toebehoren.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Renobo voorraad",
+  },
+  icons: {
+    apple: "/apple-icon",
+    icon: "/icon",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ff1d25",
 };
 
 export default function RootLayout({
@@ -24,11 +28,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        <ServiceWorkerRegistration />
         <AuthGate>{children}</AuthGate>
       </body>
     </html>
