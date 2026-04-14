@@ -2,13 +2,12 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import RenoboBrand from "@/components/RenoboBrand";
 import { hasSupabaseEnv, supabase } from "@/lib/supabase";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const configError =
     !hasSupabaseEnv || !supabase
       ? "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local."
@@ -29,7 +28,10 @@ export default function ResetPasswordPage() {
     let isMounted = true;
 
     async function initializeRecovery() {
-      const code = searchParams.get("code");
+      const code =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("code")
+          : null;
 
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -96,7 +98,7 @@ export default function ResetPasswordPage() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [configError, searchParams]);
+  }, [configError]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
