@@ -39,7 +39,7 @@ type LocationOption = {
   name: string
 }
 
-export default async function ToebehorenPage() {
+export default async function TelefooncellenPage() {
   const supabase = await createClient()
   const {
     data: { session },
@@ -85,7 +85,7 @@ export default async function ToebehorenPage() {
         <div className="mx-auto max-w-6xl rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
           <h1 className="text-3xl font-semibold text-neutral-900">Renobo voorraad</h1>
           <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-            Fout bij laden van toebehoren: {message}
+            Fout bij laden van telefooncellen: {message}
           </p>
         </div>
       </main>
@@ -93,12 +93,12 @@ export default async function ToebehorenPage() {
   }
 
   const variants = ((variantsData ?? []) as ProductVariantRow[]).filter(
-    (variant) => variant.products?.product_categories?.name === 'Toebehoren'
+    (variant) => variant.products?.product_categories?.name === 'Telefooncellen'
   )
   const inventoryRows = ((stockData ?? []) as StockSummaryRow[]).filter(
     (row) =>
       row.quantity > 0 &&
-      row.product_variants?.products?.product_categories?.name === 'Toebehoren'
+      row.product_variants?.products?.product_categories?.name === 'Telefooncellen'
   )
   const locations = (locationsData ?? []) as LocationOption[]
   const canAddStock = profileData?.role === 'admin'
@@ -136,7 +136,7 @@ export default async function ToebehorenPage() {
       acc.set(row.product_variant_id, {
         id: row.product_variant_id,
         display_name: variant.display_name,
-        product_name: variant.products?.name ?? 'Toebehoren',
+        product_name: variant.products?.name ?? 'Telefooncel',
         totalStock: row.quantity,
       })
 
@@ -150,10 +150,10 @@ export default async function ToebehorenPage() {
         <div className="rounded-3xl bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <RenoboBrand href="/toebehoren" />
+              <RenoboBrand href="/telefooncellen" />
               <h1 className="mt-4 text-3xl font-semibold text-neutral-900">Renobo voorraad</h1>
               <p className="mt-2 text-neutral-600">
-                Overzicht van toebehoren. Tik op een kaart voor het detailoverzicht.
+                Overzicht van telefooncellen. Tik op een kaart voor het detailoverzicht.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
@@ -168,15 +168,15 @@ export default async function ToebehorenPage() {
                 >
                   Panelen
                 </Link>
-                <span className="rounded-2xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white">
-                  Toebehoren
-                </span>
                 <Link
-                  href="/telefooncellen"
+                  href="/toebehoren"
                   className="rounded-2xl border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition hover:border-[var(--brand)]/40 hover:bg-white"
                 >
-                  Telefooncellen
+                  Toebehoren
                 </Link>
+                <span className="rounded-2xl bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white">
+                  Telefooncellen
+                </span>
               </div>
             </div>
 
@@ -192,7 +192,7 @@ export default async function ToebehorenPage() {
           {visibleVariants.map((variant) => (
             <Link
               key={variant.id}
-              href={`/toebehoren/${variant.id}`}
+              href={`/telefooncellen/${variant.id}`}
               className="group block rounded-3xl focus-visible:outline-none"
             >
               <article className="rounded-3xl bg-white p-5 shadow-sm transition duration-150 group-hover:-translate-y-0.5 group-hover:shadow-md group-active:scale-[0.99] group-focus-visible:ring-2 group-focus-visible:ring-[var(--brand)]">
@@ -221,7 +221,7 @@ export default async function ToebehorenPage() {
 
           {visibleVariants.length === 0 && (
             <div className="rounded-3xl bg-white px-5 py-10 text-center text-neutral-500 shadow-sm sm:col-span-2 xl:col-span-3">
-              Geen toebehoren gevonden.
+              Geen telefooncellen gevonden.
             </div>
           )}
         </div>

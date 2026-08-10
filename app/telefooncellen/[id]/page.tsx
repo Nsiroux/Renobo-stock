@@ -77,7 +77,7 @@ function ReservationStatusBadge({ status }: { status: ReservationRow['status'] }
   )
 }
 
-export default async function PanelDetailPage({ params }: PageProps) {
+export default async function TelefooncelDetailPage({ params }: PageProps) {
   const { id } = await params
   const supabase = await createClient()
   const {
@@ -130,9 +130,9 @@ export default async function PanelDetailPage({ params }: PageProps) {
     return (
       <main className="min-h-screen bg-neutral-50 p-6">
         <div className="mx-auto max-w-5xl rounded-3xl border border-red-200 bg-white p-6 shadow-sm">
-          <h1 className="text-3xl font-semibold text-neutral-900">Paneel detail</h1>
+          <h1 className="text-3xl font-semibold text-neutral-900">Telefooncel detail</h1>
           <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
-            Fout bij laden van paneelgegevens: {message}
+            Fout bij laden van telefooncelgegevens: {message}
           </p>
         </div>
       </main>
@@ -214,11 +214,11 @@ export default async function PanelDetailPage({ params }: PageProps) {
                 </Link>
               </div>
               <div className="mt-4">
-                <RenoboBrand href="/panelen" compact />
+                <RenoboBrand href="/telefooncellen" compact />
               </div>
               <h1 className="mt-3 text-3xl font-semibold text-neutral-900">Renobo voorraad</h1>
               <h2 className="mt-3 text-2xl font-semibold text-neutral-900">
-                {variant.display_name ?? 'Onbekend paneel'}
+                {variant.display_name ?? 'Onbekende telefooncel'}
               </h2>
               <p className="mt-2 text-neutral-600">
                 Detailoverzicht van voorraad en reservaties voor deze variant.
@@ -287,13 +287,9 @@ export default async function PanelDetailPage({ params }: PageProps) {
                       <td className="px-5 py-4 font-medium text-neutral-900">
                         {reservation.customer_name ?? '-'}
                       </td>
-                      <td className="px-5 py-4 text-neutral-600">
-                        {reservation.order_reference ?? '-'}
-                      </td>
+                      <td className="px-5 py-4 text-neutral-600">{reservation.order_reference ?? '-'}</td>
                       <td className="px-5 py-4 text-neutral-900">{reservation.quantity}</td>
-                      <td className="px-5 py-4 text-neutral-600">
-                        {reservation.requested_date ?? '-'}
-                      </td>
+                      <td className="px-5 py-4 text-neutral-600">{reservation.requested_date ?? '-'}</td>
                       <td className="px-5 py-4">
                         <ReservationStatusBadge status={reservation.status} />
                       </td>
@@ -302,7 +298,7 @@ export default async function PanelDetailPage({ params }: PageProps) {
                   {reservations.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-5 py-10 text-center text-neutral-500">
-                        Geen reservaties gevonden voor deze productvariant.
+                        Geen reservaties gevonden voor deze variant.
                       </td>
                     </tr>
                   )}
@@ -311,33 +307,28 @@ export default async function PanelDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="space-y-4 md:hidden">
+          <div className="grid gap-4 md:hidden">
             {reservations.map((reservation) => (
               <article key={reservation.id} className="rounded-3xl bg-white p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-base font-semibold text-neutral-900">
-                      {reservation.customer_name ?? '-'}
-                    </p>
-                    <p className="mt-1 text-sm text-neutral-500">
-                      {reservation.order_reference ?? '-'}
-                    </p>
+                    <p className="text-sm text-neutral-500">Klant</p>
+                    <p className="mt-1 font-medium text-neutral-900">{reservation.customer_name ?? '-'}</p>
                   </div>
                   <ReservationStatusBadge status={reservation.status} />
                 </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-neutral-50 p-3">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500">Aantal</p>
-                    <p className="mt-1 text-xl font-semibold text-neutral-900">
-                      {reservation.quantity}
-                    </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-sm text-neutral-500">Orderref</p>
+                    <p className="mt-1 text-neutral-900">{reservation.order_reference ?? '-'}</p>
                   </div>
-                  <div className="rounded-2xl bg-neutral-50 p-3">
-                    <p className="text-xs uppercase tracking-wide text-neutral-500">Datum</p>
-                    <p className="mt-1 text-sm font-medium text-neutral-900">
-                      {reservation.requested_date ?? '-'}
-                    </p>
+                  <div>
+                    <p className="text-sm text-neutral-500">Aantal</p>
+                    <p className="mt-1 text-neutral-900">{reservation.quantity}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-neutral-500">Datum</p>
+                    <p className="mt-1 text-neutral-900">{reservation.requested_date ?? '-'}</p>
                   </div>
                 </div>
               </article>
@@ -345,7 +336,7 @@ export default async function PanelDetailPage({ params }: PageProps) {
 
             {reservations.length === 0 && (
               <div className="rounded-3xl bg-white px-5 py-10 text-center text-neutral-500 shadow-sm">
-                Geen reservaties gevonden voor deze productvariant.
+                Geen reservaties gevonden voor deze variant.
               </div>
             )}
           </div>
