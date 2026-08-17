@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import LogoutButton from '@/components/LogoutButton'
 import RenoboBrand from '@/components/RenoboBrand'
+import ReservationEditForm from '@/components/ReservationEditForm'
 import ReservationForm from '@/components/ReservationForm'
 import ReservationStockOutForm from '@/components/ReservationStockOutForm'
 import StockOutForm from '@/components/StockOutForm'
@@ -22,6 +23,8 @@ type ProductVariantRow = {
 type StockSummaryRow = {
   product_variant_id: string
   physical_stock: number
+  reserved_stock: number
+  available_stock: number
 }
 
 type InventoryRow = {
@@ -103,7 +106,7 @@ export default async function TelefooncelDetailPage({ params }: PageProps) {
       .maybeSingle(),
     supabase
       .from('v_stock_summary')
-      .select('product_variant_id, physical_stock')
+      .select('product_variant_id, physical_stock, reserved_stock, available_stock')
       .eq('product_variant_id', id)
       .maybeSingle(),
     supabase.from('locations').select('id, name').order('name'),
@@ -180,6 +183,8 @@ export default async function TelefooncelDetailPage({ params }: PageProps) {
   })
   const totalStock =
     stockSummary?.physical_stock ?? stockPerLocation.reduce((sum, location) => sum + location.quantity, 0)
+  const reservedStock = stockSummary?.reserved_stock ?? openReservations.reduce((sum, reservation) => sum + reservation.quantity, 0)
+  const availableStock = stockSummary?.available_stock ?? Math.max(totalStock - reservedStock, 0)
 
   return (
     <main className="min-h-screen bg-neutral-50 p-6">
@@ -230,9 +235,19 @@ export default async function TelefooncelDetailPage({ params }: PageProps) {
         </div>
 
         <section className="space-y-4">
-          <div className="rounded-3xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-neutral-500">Totale stock</p>
-            <p className="mt-2 text-4xl font-semibold text-neutral-900">{totalStock}</p>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-3xl bg-white p-5 shadow-sm">
+              <p className="text-sm text-neutral-500">Fysieke stock</p>
+              <p className="mt-2 text-4xl font-semibold text-neutral-900">{totalStock}</p>
+            </div>
+            <div className="rounded-3xl bg-white p-5 shadow-sm">
+              <p className="text-sm text-neutral-500">Gereserveerd</p>
+              <p className="mt-2 text-4xl font-semibold text-neutral-900">{reservedStock}</p>
+            </div>
+            <div className="rounded-3xl bg-white p-5 shadow-sm">
+              <p className="text-sm text-neutral-500">Beschikbaar</p>
+              <p className="mt-2 text-4xl font-semibold text-[var(--brand)]">{availableStock}</p>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -279,6 +294,7 @@ export default async function TelefooncelDetailPage({ params }: PageProps) {
                     <th className="px-5 py-4 font-medium">Aantal</th>
                     <th className="px-5 py-4 font-medium">Datum</th>
                     <th className="px-5 py-4 font-medium">Status</th>
+                    <th className="px-5 py-4 font-medium">Actie</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -293,11 +309,14 @@ export default async function TelefooncelDetailPage({ params }: PageProps) {
                       <td className="px-5 py-4">
                         <ReservationStatusBadge status={reservation.status} />
                       </td>
+                      <td className="px-5 py-4">
+                        <ReservationEditForm reservation={reservation} />
+                      </td>
                     </tr>
                   ))}
                   {reservations.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-10 text-center text-neutral-500">
+                      <td colSpan={6} className="px-5 py-10 text-center text-neutral-500">
                         Geen reservaties gevonden voor deze variant.
                       </td>
                     </tr>
@@ -330,6 +349,9 @@ export default async function TelefooncelDetailPage({ params }: PageProps) {
                     <p className="text-sm text-neutral-500">Datum</p>
                     <p className="mt-1 text-neutral-900">{reservation.requested_date ?? '-'}</p>
                   </div>
+                </div>
+                <div className="mt-4">
+                  <ReservationEditForm reservation={reservation} />
                 </div>
               </article>
             ))}

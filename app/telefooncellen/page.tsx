@@ -18,18 +18,15 @@ type ProductVariantRow = {
 
 type StockSummaryRow = {
   product_variant_id: string
-  quantity: number
-  location_id: string
-  product_variants: {
-    id: string
-    display_name: string | null
-    inventory_mode: string | null
-    is_active: boolean | null
-    products: {
+  display_name: string | null
+  physical_stock: number
+  reserved_stock: number
+  available_stock: number
+  stock_status: 'ok' | 'low' | 'critical'
+  products: {
+    name: string | null
+    product_categories: {
       name: string | null
-      product_categories: {
-        name: string | null
-      } | null
     } | null
   } | null
 }
@@ -37,6 +34,34 @@ type StockSummaryRow = {
 type LocationOption = {
   id: string
   name: string
+}
+
+type ReservationRow = {
+  id: string
+  customer_name: string | null
+  order_reference: string | null
+  quantity: number
+  requested_date: string | null
+  status: 'reserved' | 'partial' | 'delivered' | 'cancelled'
+  product_variants: {
+    id: string
+    display_name: string | null
+  } | null
+}
+
+function ReservationStatusBadge({ status }: { status: ReservationRow['status'] }) {
+  const styles =
+    status === 'partial'
+      ? 'bg-amber-100 text-amber-700 border-amber-200'
+      : 'bg-blue-100 text-blue-700 border-blue-200'
+
+  const label = status === 'partial' ? 'Deels geleverd' : 'Gereserveerd'
+
+  return (
+    <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${styles}`}>
+      {label}
+    </span>
+  )
 }
 
 export default async function TelefooncellenPage() {
@@ -53,6 +78,7 @@ export default async function TelefooncellenPage() {
     { data: variantsData, error: variantsError },
     { data: stockData, error: stockError },
     { data: locationsData, error: locationsError },
+    { data: reservationsData, error: reservationsError },
     { data: profileData, error: profileError },
   ] = await Promise.all([
     supabase
@@ -62,21 +88,24 @@ export default async function TelefooncellenPage() {
       .eq('inventory_mode', 'simple')
       .order('display_name'),
     supabase
-      .from('inventory')
-      .select(
-        'product_variant_id, quantity, location_id, product_variants!inner(id, display_name, inventory_mode, is_active, products(name, product_categories(name)))'
-      )
-      .eq('product_variants.inventory_mode', 'simple')
-      .eq('product_variants.is_active', true),
+      .from('v_stock_summary')
+      .select('product_variant_id, display_name, physical_stock, reserved_stock, available_stock, stock_status, products(name, product_categories(name))')
+      .order('display_name'),
     supabase.from('locations').select('id, name').order('name'),
+    supabase
+      .from('reservations')
+      .select('id, customer_name, order_reference, quantity, requested_date, status, product_variants(id, display_name)')
+      .in('status', ['reserved', 'partial'])
+      .order('requested_date', { ascending: true }),
     supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle(),
   ])
 
-  if (variantsError || stockError || locationsError || profileError) {
+  if (variantsError || stockError || locationsError || reservationsError || profileError) {
     const message =
       variantsError?.message ||
       stockError?.message ||
       locationsError?.message ||
+      reservationsError?.message ||
       profileError?.message ||
       'Onbekende fout'
 
@@ -95,10 +124,15 @@ export default async function TelefooncellenPage() {
   const variants = ((variantsData ?? []) as ProductVariantRow[]).filter(
     (variant) => variant.products?.product_categories?.name === 'Telefooncellen'
   )
-  const inventoryRows = ((stockData ?? []) as StockSummaryRow[]).filter(
+  const stockRows = ((stockData ?? []) as StockSummaryRow[]).filter(
     (row) =>
-      row.quantity > 0 &&
-      row.product_variants?.products?.product_categories?.name === 'Telefooncellen'
+      row.physical_stock > 0 &&
+      row.products?.product_categories?.name === 'Telefooncellen'
+  )
+  const reservations = ((reservationsData ?? []) as ReservationRow[]).filter(
+    (reservation) => reservation.product_variants?.display_name
+      ? variants.some((variant) => variant.id === reservation.product_variants?.id)
+      : false
   )
   const locations = (locationsData ?? []) as LocationOption[]
   const canAddStock = profileData?.role === 'admin'
@@ -108,41 +142,14 @@ export default async function TelefooncellenPage() {
       id: variant.id,
       display_name: variant.display_name ?? 'Onbekende variant',
     }))
-  const visibleVariants = Array.from(
-    inventoryRows.reduce<
-      Map<
-        string,
-        {
-          id: string
-          display_name: string | null
-          product_name: string | null
-          totalStock: number
-        }
-      >
-    >((acc, row) => {
-      const variant = row.product_variants
-
-      if (!variant) {
-        return acc
-      }
-
-      const existing = acc.get(row.product_variant_id)
-
-      if (existing) {
-        existing.totalStock += row.quantity
-        return acc
-      }
-
-      acc.set(row.product_variant_id, {
-        id: row.product_variant_id,
-        display_name: variant.display_name,
-        product_name: variant.products?.name ?? 'Telefooncel',
-        totalStock: row.quantity,
-      })
-
-      return acc
-    }, new Map()).values()
-  )
+  const visibleVariants = stockRows.map((row) => ({
+    id: row.product_variant_id,
+    display_name: row.display_name,
+    product_name: row.products?.name ?? 'Telefooncel',
+    totalStock: row.physical_stock,
+    reservedStock: row.reserved_stock,
+    availableStock: row.available_stock,
+  }))
 
   return (
     <main className="min-h-screen bg-neutral-50 p-6">
@@ -210,10 +217,20 @@ export default async function TelefooncellenPage() {
                 </div>
 
                 <div className="mt-5 rounded-2xl bg-neutral-50 p-4">
-                  <p className="text-sm text-neutral-500">Totale stock</p>
-                  <p className="mt-2 text-3xl font-semibold text-neutral-900">
-                    {variant.totalStock}
-                  </p>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <p className="text-sm text-neutral-500">Fysiek</p>
+                      <p className="mt-2 text-2xl font-semibold text-neutral-900">{variant.totalStock}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-neutral-500">Gereserveerd</p>
+                      <p className="mt-2 text-2xl font-semibold text-neutral-900">{variant.reservedStock}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-neutral-500">Beschikbaar</p>
+                      <p className="mt-2 text-2xl font-semibold text-[var(--brand)]">{variant.availableStock}</p>
+                    </div>
+                  </div>
                 </div>
               </article>
             </Link>
@@ -225,6 +242,55 @@ export default async function TelefooncellenPage() {
             </div>
           )}
         </div>
+
+        <section className="space-y-4">
+          <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
+            <h2 className="text-xl font-semibold text-neutral-900">Open reservaties</h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              Overzicht van alle open reservaties voor telefooncellen.
+            </p>
+          </div>
+
+          <div className="hidden overflow-hidden rounded-3xl bg-white shadow-sm md:block">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left">
+                <thead className="bg-neutral-100 text-sm text-neutral-600">
+                  <tr>
+                    <th className="px-5 py-4 font-medium">Product</th>
+                    <th className="px-5 py-4 font-medium">Klant</th>
+                    <th className="px-5 py-4 font-medium">Orderref</th>
+                    <th className="px-5 py-4 font-medium">Aantal</th>
+                    <th className="px-5 py-4 font-medium">Datum</th>
+                    <th className="px-5 py-4 font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((reservation) => (
+                    <tr key={reservation.id} className="border-t border-neutral-100">
+                      <td className="px-5 py-4 font-medium text-neutral-900">
+                        {reservation.product_variants?.display_name ?? '-'}
+                      </td>
+                      <td className="px-5 py-4 text-neutral-900">{reservation.customer_name ?? '-'}</td>
+                      <td className="px-5 py-4 text-neutral-600">{reservation.order_reference ?? '-'}</td>
+                      <td className="px-5 py-4 text-neutral-900">{reservation.quantity}</td>
+                      <td className="px-5 py-4 text-neutral-600">{reservation.requested_date ?? '-'}</td>
+                      <td className="px-5 py-4">
+                        <ReservationStatusBadge status={reservation.status} />
+                      </td>
+                    </tr>
+                  ))}
+                  {reservations.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-5 py-10 text-center text-neutral-500">
+                        Geen open reservaties voor telefooncellen.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   )
