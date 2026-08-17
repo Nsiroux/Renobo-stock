@@ -19,16 +19,12 @@ type ProductVariantRow = {
 type StockSummaryRow = {
   product_variant_id: string
   display_name: string | null
+  product_name: string | null
+  category_name: string | null
   physical_stock: number
   reserved_stock: number
   available_stock: number
   stock_status: 'ok' | 'low' | 'critical'
-  products: {
-    name: string | null
-    product_categories: {
-      name: string | null
-    } | null
-  } | null
 }
 
 type LocationOption = {
@@ -89,7 +85,9 @@ export default async function TelefooncellenPage() {
       .order('display_name'),
     supabase
       .from('v_stock_summary')
-      .select('product_variant_id, display_name, physical_stock, reserved_stock, available_stock, stock_status, products(name, product_categories(name))')
+      .select(
+        'product_variant_id, display_name, product_name, category_name, physical_stock, reserved_stock, available_stock, stock_status'
+      )
       .order('display_name'),
     supabase.from('locations').select('id, name').order('name'),
     supabase
@@ -127,7 +125,7 @@ export default async function TelefooncellenPage() {
   const stockRows = ((stockData ?? []) as StockSummaryRow[]).filter(
     (row) =>
       row.physical_stock > 0 &&
-      row.products?.product_categories?.name === 'Telefooncellen'
+      row.category_name === 'Telefooncellen'
   )
   const reservations = ((reservationsData ?? []) as ReservationRow[]).filter(
     (reservation) => reservation.product_variants?.display_name
@@ -145,7 +143,7 @@ export default async function TelefooncellenPage() {
   const visibleVariants = stockRows.map((row) => ({
     id: row.product_variant_id,
     display_name: row.display_name,
-    product_name: row.products?.name ?? 'Telefooncel',
+    product_name: row.product_name ?? 'Telefooncel',
     totalStock: row.physical_stock,
     reservedStock: row.reserved_stock,
     availableStock: row.available_stock,
