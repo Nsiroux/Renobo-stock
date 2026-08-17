@@ -18,6 +18,17 @@ type ProductVariantRow = {
 
 type StockSummaryRow = {
   product_variant_id: string
+  display_name: string | null
+  product_name: string | null
+  category_name: string | null
+  physical_stock: number
+  reserved_stock: number
+  available_stock: number
+  stock_status: 'ok' | 'low' | 'critical'
+}
+
+type InventoryRow = {
+  product_variant_id: string
   quantity: number
   location_id: string
   product_variants: {
@@ -39,6 +50,34 @@ type LocationOption = {
   name: string
 }
 
+type ReservationRow = {
+  id: string
+  customer_name: string | null
+  order_reference: string | null
+  quantity: number
+  requested_date: string | null
+  status: 'reserved' | 'partial' | 'delivered' | 'cancelled'
+  product_variants: {
+    id: string
+    display_name: string | null
+  } | null
+}
+
+function ReservationStatusBadge({ status }: { status: ReservationRow['status'] }) {
+  const styles =
+    status === 'partial'
+      ? 'bg-amber-100 text-amber-700 border-amber-200'
+      : 'bg-blue-100 text-blue-700 border-blue-200'
+
+  const label = status === 'partial' ? 'Deels geleverd' : 'Gereserveerd'
+
+  return (
+    <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-medium ${styles}`}>
+      {label}
+    </span>
+  )
+}
+
 export default async function PanelenPage() {
   const supabase = await createClient()
   const {
@@ -51,8 +90,10 @@ export default async function PanelenPage() {
 
   const [
     { data: variantsData, error: variantsError },
-    { data: stockData, error: stockError },
+    { data: inventoryData, error: inventoryError },
+    { data: summaryData, error: summaryError },
     { data: locationsData, error: locationsError },
+    { data: reservationsData, error: reservationsError },
     { data: profileData, error: profileError },
   ] = await Promise.all([
     supabase
@@ -68,15 +109,30 @@ export default async function PanelenPage() {
       )
       .eq('product_variants.inventory_mode', 'simple')
       .eq('product_variants.is_active', true),
+    supabase
+      .from('v_stock_summary')
+      .select(
+        'product_variant_id, display_name, product_name, category_name, physical_stock, reserved_stock, available_stock, stock_status'
+      )
+      .order('display_name'),
     supabase.from('locations').select('id, name').order('name'),
+    supabase
+      .from('reservations')
+      .select(
+        'id, customer_name, order_reference, quantity, requested_date, status, product_variants(id, display_name)'
+      )
+      .in('status', ['reserved', 'partial'])
+      .order('requested_date', { ascending: true }),
     supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle(),
   ])
 
-  if (variantsError || stockError || locationsError || profileError) {
+  if (variantsError || inventoryError || summaryError || locationsError || reservationsError || profileError) {
     const message =
       variantsError?.message ||
-      stockError?.message ||
+      inventoryError?.message ||
+      summaryError?.message ||
       locationsError?.message ||
+      reservationsError?.message ||
       profileError?.message ||
       'Onbekende fout'
 
@@ -95,7 +151,7 @@ export default async function PanelenPage() {
   const variants = ((variantsData ?? []) as ProductVariantRow[]).filter(
     (variant) => variant.products?.product_categories?.name === 'Panelen'
   )
-  const inventoryRows = ((stockData ?? []) as StockSummaryRow[]).filter(
+  const inventoryRows = ((inventoryData ?? []) as InventoryRow[]).filter(
     (row) =>
       row.quantity > 0 &&
       row.product_variants?.products?.product_categories?.name === 'Panelen'
@@ -108,40 +164,27 @@ export default async function PanelenPage() {
       id: variant.id,
       display_name: variant.display_name ?? 'Onbekende variant',
     }))
-  const visibleVariants = Array.from(
-    inventoryRows.reduce<
-      Map<
-        string,
-        {
-          id: string
-          display_name: string | null
-          product_name: string | null
-          totalStock: number
-        }
-      >
-    >((acc, row) => {
-      const variant = row.product_variants
-
-      if (!variant) {
-        return acc
-      }
-
-      const existing = acc.get(row.product_variant_id)
-
-      if (existing) {
-        existing.totalStock += row.quantity
-        return acc
-      }
-
-      acc.set(row.product_variant_id, {
-        id: row.product_variant_id,
-        display_name: variant.display_name,
-        product_name: variant.products?.name ?? 'Paneel',
-        totalStock: row.quantity,
-      })
-
-      return acc
-    }, new Map()).values()
+  const physicalStockByVariant = inventoryRows.reduce<Record<string, number>>((acc, row) => {
+    acc[row.product_variant_id] = (acc[row.product_variant_id] ?? 0) + row.quantity
+    return acc
+  }, {})
+  const visibleVariants = ((summaryData ?? []) as StockSummaryRow[])
+    .filter(
+      (row) =>
+        row.category_name === 'Panelen' &&
+        (row.physical_stock > 0 || row.reserved_stock > 0)
+    )
+    .map((row) => ({
+      id: row.product_variant_id,
+      display_name: row.display_name,
+      product_name: row.product_name ?? 'Paneel',
+      totalStock: physicalStockByVariant[row.product_variant_id] ?? row.physical_stock,
+      reservedStock: row.reserved_stock,
+      availableStock: row.available_stock,
+    }))
+  const panelVariantIds = new Set(variants.map((variant) => variant.id))
+  const reservations = ((reservationsData ?? []) as ReservationRow[]).filter(
+    (reservation) => reservation.product_variants?.id && panelVariantIds.has(reservation.product_variants.id)
   )
 
   return (
@@ -211,10 +254,26 @@ export default async function PanelenPage() {
                   </div>
 
                   <div className="mt-5 rounded-2xl bg-neutral-50 p-4">
-                    <p className="text-sm text-neutral-500">Totale stock</p>
-                    <p className="mt-2 text-3xl font-semibold text-neutral-900">
-                      {variant.totalStock}
-                    </p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div>
+                        <p className="text-sm text-neutral-500">Fysiek</p>
+                        <p className="mt-2 text-2xl font-semibold text-neutral-900">
+                          {variant.totalStock}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-neutral-500">Gereserveerd</p>
+                        <p className="mt-2 text-2xl font-semibold text-neutral-900">
+                          {variant.reservedStock}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-neutral-500">Beschikbaar</p>
+                        <p className="mt-2 text-2xl font-semibold text-[var(--brand)]">
+                          {variant.availableStock}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </article>
               </Link>
@@ -227,6 +286,122 @@ export default async function PanelenPage() {
             </div>
           )}
         </div>
+
+        <section className="space-y-4">
+          <div className="rounded-3xl bg-white px-5 py-4 shadow-sm">
+            <h2 className="text-xl font-semibold text-neutral-900">Open reservaties</h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              Overzicht van alle open reservaties voor panelen.
+            </p>
+          </div>
+
+          <div className="hidden overflow-hidden rounded-3xl bg-white shadow-sm md:block">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left">
+                <thead className="bg-neutral-100 text-sm text-neutral-600">
+                  <tr>
+                    <th className="px-5 py-4 font-medium">Product</th>
+                    <th className="px-5 py-4 font-medium">Klant</th>
+                    <th className="px-5 py-4 font-medium">Orderref</th>
+                    <th className="px-5 py-4 font-medium">Aantal</th>
+                    <th className="px-5 py-4 font-medium">Datum</th>
+                    <th className="px-5 py-4 font-medium">Status</th>
+                    <th className="px-5 py-4 font-medium">Actie</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((reservation) => (
+                    <tr key={reservation.id} className="border-t border-neutral-100">
+                      <td className="px-5 py-4 font-medium text-neutral-900">
+                        {reservation.product_variants?.display_name ?? 'Onbekend product'}
+                      </td>
+                      <td className="px-5 py-4 text-neutral-600">{reservation.customer_name ?? '-'}</td>
+                      <td className="px-5 py-4 text-neutral-600">{reservation.order_reference ?? '-'}</td>
+                      <td className="px-5 py-4 text-neutral-900">{reservation.quantity}</td>
+                      <td className="px-5 py-4 text-neutral-600">{reservation.requested_date ?? '-'}</td>
+                      <td className="px-5 py-4">
+                        <ReservationStatusBadge status={reservation.status} />
+                      </td>
+                      <td className="px-5 py-4">
+                        {reservation.product_variants?.id ? (
+                          <Link
+                            href={`/panelen/${reservation.product_variants.id}`}
+                            className="rounded-2xl border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700"
+                          >
+                            Open detail
+                          </Link>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
+                  {reservations.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-10 text-center text-neutral-500">
+                        Geen open reservaties voor panelen.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="space-y-4 md:hidden">
+            {reservations.map((reservation) => (
+              <article key={reservation.id} className="rounded-3xl bg-white p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-base font-semibold text-neutral-900">
+                      {reservation.product_variants?.display_name ?? 'Onbekend product'}
+                    </p>
+                    <p className="mt-1 text-sm text-neutral-500">
+                      {reservation.customer_name ?? '-'}
+                    </p>
+                  </div>
+                  <ReservationStatusBadge status={reservation.status} />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-neutral-50 p-3">
+                    <p className="text-xs uppercase tracking-wide text-neutral-500">Orderref</p>
+                    <p className="mt-1 text-sm font-medium text-neutral-900">
+                      {reservation.order_reference ?? '-'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-neutral-50 p-3">
+                    <p className="text-xs uppercase tracking-wide text-neutral-500">Aantal</p>
+                    <p className="mt-1 text-xl font-semibold text-neutral-900">
+                      {reservation.quantity}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-neutral-50 p-3">
+                    <p className="text-xs uppercase tracking-wide text-neutral-500">Datum</p>
+                    <p className="mt-1 text-sm font-medium text-neutral-900">
+                      {reservation.requested_date ?? '-'}
+                    </p>
+                  </div>
+                </div>
+
+                {reservation.product_variants?.id ? (
+                  <div className="mt-4">
+                    <Link
+                      href={`/panelen/${reservation.product_variants.id}`}
+                      className="inline-flex rounded-2xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-700"
+                    >
+                      Open detail
+                    </Link>
+                  </div>
+                ) : null}
+              </article>
+            ))}
+
+            {reservations.length === 0 && (
+              <div className="rounded-3xl bg-white px-5 py-10 text-center text-neutral-500 shadow-sm">
+                Geen open reservaties voor panelen.
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </main>
   )
