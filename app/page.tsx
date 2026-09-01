@@ -10,6 +10,7 @@ import MobileQuickActions from '@/components/MobileQuickActions'
 import AdminStockSetForm from '@/components/AdminStockSetForm'
 import CloseReservationAction from '@/components/CloseReservationAction'
 import RenoboBrand from '@/components/RenoboBrand'
+import StockAddForm from '@/components/StockAddForm'
 
 type StockRow = {
   product_variant_id: string
@@ -214,6 +215,7 @@ export default async function Home() {
   const activeVariantIds = new Set(variantOptions.map((variant) => variant.id))
   const inventoryRows = (inventoryData ?? []) as InventoryRow[]
   const locationOptions = (locationsData ?? []) as LocationOption[]
+  const canAddStock = profileData?.role === 'admin'
   const canAdjustStock = profileData?.role === 'admin'
   const inventoryByVariant = inventoryRows.reduce<Record<string, Record<string, number>>>(
     (acc, row) => {
@@ -249,7 +251,9 @@ export default async function Home() {
     return Boolean(displayName && padVariantNames.includes(displayName as (typeof padVariantNames)[number]))
   })
   const padVariantOptions = variantOptions
-    .filter((variant) => padVariantIds.has(variant.id))
+    .filter((variant) =>
+      padVariantNames.includes(variant.display_name as (typeof padVariantNames)[number])
+    )
     .map((variant) => ({
       ...variant,
       display_name: formatPadDisplayName(variant.display_name),
@@ -444,6 +448,12 @@ export default async function Home() {
           locations={locationOptions}
           reservations={padReservationRows}
         />
+
+        {canAddStock && (
+          <div className="xl:max-w-md">
+            <StockAddForm variants={padVariantOptions} locations={locationOptions} />
+          </div>
+        )}
 
         <div className="hidden gap-6 xl:grid-cols-2 xl:grid 2xl:grid-cols-4">
           <ReservationForm variants={padVariantOptions} />
