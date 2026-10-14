@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 
 type Props = {
   reservationId: string
+  cancelOnly?: boolean
 }
 
 const options = [
@@ -12,7 +13,7 @@ const options = [
   { value: 'cancelled', label: 'Geannuleerd' },
 ] as const
 
-export default function CloseReservationAction({ reservationId }: Props) {
+export default function CloseReservationAction({ reservationId, cancelOnly = false }: Props) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -59,13 +60,13 @@ export default function CloseReservationAction({ reservationId }: Props) {
         onClick={() => setIsOpen((current) => !current)}
         className="rounded-2xl border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700"
       >
-        Afsluiten
+        {cancelOnly ? 'Annuleren' : 'Afsluiten'}
       </button>
 
       {isOpen && (
         <div className="mt-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-3">
           <div className="space-y-2">
-            {options.map((option) => (
+            {(cancelOnly ? options.filter((option) => option.value === 'cancelled') : options).map((option) => (
               <button
                 key={option.value}
                 type="button"

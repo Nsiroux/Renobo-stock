@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import LogoutButton from '@/components/LogoutButton'
 import RenoboBrand from '@/components/RenoboBrand'
 import ReservationEditForm from '@/components/ReservationEditForm'
+import CloseReservationAction from '@/components/CloseReservationAction'
 import ReservationForm from '@/components/ReservationForm'
 import ReservationStockOutForm from '@/components/ReservationStockOutForm'
 import StockOutForm from '@/components/StockOutForm'
@@ -310,7 +311,12 @@ export default async function TelefooncelDetailPage({ params }: PageProps) {
                         <ReservationStatusBadge status={reservation.status} />
                       </td>
                       <td className="px-5 py-4">
-                        <ReservationEditForm reservation={reservation} />
+                        {(reservation.status === 'reserved' || reservation.status === 'partial') && (
+                          <div className="space-y-3">
+                            <ReservationEditForm reservation={reservation} />
+                            <CloseReservationAction reservationId={reservation.id} cancelOnly />
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -351,7 +357,12 @@ export default async function TelefooncelDetailPage({ params }: PageProps) {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <ReservationEditForm reservation={reservation} />
+                  {(reservation.status === 'reserved' || reservation.status === 'partial') && (
+                    <div className="space-y-3">
+                      <ReservationEditForm reservation={reservation} />
+                      <CloseReservationAction reservationId={reservation.id} cancelOnly />
+                    </div>
+                  )}
                 </div>
               </article>
             ))}

@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useState, useTransition } from "react"
+import { FormEvent, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 type ProductVariantOption = {
@@ -15,6 +15,8 @@ type Props = {
 export default function ReservationForm({ variants }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const submitting = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [productVariantId, setProductVariantId] = useState(variants[0]?.id ?? '')
   const [customerName, setCustomerName] = useState('')
@@ -77,8 +79,18 @@ export default function ReservationForm({ variants }: Props) {
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (submitting.current) return
     const formData = new FormData(e.currentTarget)
-    await onSubmit(formData)
+    submitting.current = true
+    setIsSubmitting(true)
+    try {
+      await onSubmit(formData)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Reservatie kon niet worden aangemaakt.')
+    } finally {
+      submitting.current = false
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -166,10 +178,10 @@ export default function ReservationForm({ variants }: Props) {
 
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || isSubmitting}
           className="w-full rounded-2xl bg-[var(--brand)] px-4 py-3 font-medium text-white disabled:opacity-50"
         >
-          {isPending ? 'Bezig...' : 'Reservatie aanmaken'}
+          {isPending || isSubmitting ? 'Bezig...' : 'Reservatie aanmaken'}
         </button>
       </form>
     </div>
